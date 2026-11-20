@@ -1,0 +1,6 @@
+{
+  "name": "Lumina AI",
+  "description": "VIP AI Photo & Video Enhancer with Apple-inspired studio tools, 4K/8K upscaling, Wallpaper Studio, Daily Photo Challenge, and smart subscriptions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

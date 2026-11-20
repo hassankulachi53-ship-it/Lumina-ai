@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User subscription status, daily credits, streaks, referral metadata, and app preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the owner." },
+        "displayName": { "type": "string", "description": "Display name shown in profile and leaderboard." },
+        "email": { "type": "string", "description": "Private user email address." },
+        "avatarTheme": { "type": "string", "description": "Optional avatar theme key." },
+        "planTier": {
+          "type": "string",
+          "enum": ["FREE", "VIP_TRIAL", "VIP_WEEKLY", "VIP_MONTHLY", "VIP_YEARLY", "VIP_CHALLENGE_PASS"],
+          "description": "Current subscription plan tier."
+        },
+        "vipExpiresAtMs": { "type": "integer", "description": "Epoch millis when VIP access expires." },
+        "dailyCreditsRemaining": { "type": "integer", "description": "Daily free HD export credits." },
+        "bonusCredits": { "type": "integer", "description": "Earned bonus HD credits from challenges/referrals." },
+        "streakCount": { "type": "integer", "description": "Consecutive daily check-in streak." },
+        "lastCheckInDate": { "type": "string", "description": "Last check-in YYYY-MM-DD." },
+        "referralCode": { "type": "string", "description": "Unique invite code for referral rewards." },
+        "referredByCode": { "type": "string", "description": "Optional referral code redeemed by user." },
+        "referralCount": { "type": "integer", "description": "Total successful referrals." },
+        "preferredCurrency": { "type": "string", "enum": ["PKR", "USD", "GBP", "AED"] },
+        "preferredLanguage": { "type": "string", "enum": ["EN", "UR", "HI", "AR", "ES"] },
+        "darkThemeEnabled": { "type": "boolean" },
+        "notificationsEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp via FieldValue.serverTimestamp()." }
+      },
+      "required": [
+        "userId", "displayName", "email", "planTier", "vipExpiresAtMs",
+        "dailyCreditsRemaining", "bonusCredits", "streakCount", "lastCheckInDate",
+        "referralCode", "referralCount", "preferredCurrency", "preferredLanguage",
+        "darkThemeEnabled", "notificationsEnabled", "createdAt", "updatedAt"
+      ]
+    },
+    "SavedWorkItem": {
+      "title": "SavedWorkItem",
+      "description": "User's saved enhanced photos, videos, and wallpapers in My Work.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["PHOTO", "VIDEO", "WALLPAPER"] },
+        "folderName": { "type": "string" },
+        "favorite": { "type": "boolean" },
+        "toolUsed": { "type": "string" },
+        "filterName": { "type": "string" },
+        "qualityLabel": { "type": "string", "enum": ["HD", "4K", "8K", "ORIGINAL"] },
+        "enhancementSummary": { "type": "string" },
+        "localUri": { "type": "string" },
+        "thumbnailBase64": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "title", "mediaType", "folderName", "favorite",
+        "toolUsed", "filterName", "qualityLabel", "enhancementSummary",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "PaymentRequest": {
+      "title": "PaymentRequest",
+      "description": "Manual EasyPaisa or JazzCash subscription payment proof awaiting admin approval.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["EASYPAISA", "JAZZCASH"] },
+        "planId": { "type": "string", "enum": ["VIP_WEEKLY", "VIP_MONTHLY", "VIP_YEARLY"] },
+        "amountDisplay": { "type": "string" },
+        "transactionRef": { "type": "string" },
+        "senderPhone": { "type": "string" },
+        "proofSummary": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "REJECTED"] },
+        "adminNote": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "userEmail", "userName", "paymentMethod", "planId",
+        "amountDisplay", "transactionRef", "senderPhone", "proofSummary",
+        "status", "adminNote", "createdAt", "updatedAt"
+      ]
+    },
+    "ChallengeSubmission": {
+      "title": "ChallengeSubmission",
+      "description": "Daily Photo Challenge submission scored by Gemini AI Vision and showcased daily.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "dateKey": { "type": "string" },
+        "themeTitle": { "type": "string" },
+        "caption": { "type": "string" },
+        "toolUsed": { "type": "string" },
+        "creativityScore": { "type": "integer" },
+        "qualityScore": { "type": "integer" },
+        "judgeFeedback": { "type": "string" },
+        "prizeAwarded": { "type": "string", "enum": ["NONE", "EXTRA_CREDITS", "VIP_DAY_PASS"] },
+        "votesCount": { "type": "integer" },
+        "featured": { "type": "boolean" },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "previewBase64": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "userId", "authorName", "dateKey", "themeTitle", "caption",
+        "toolUsed", "creativityScore", "qualityScore", "judgeFeedback",
+        "prizeAwarded", "votesCount", "featured", "visibility", "createdAt", "updatedAt"
+      ]
+    },
+    "WallpaperCatalogItem": {
+      "title": "WallpaperCatalogItem",
+      "description": "Curated HD/4K wallpaper managed by admin.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "vipOnly": { "type": "boolean" },
+        "drawableKey": { "type": "string" },
+        "resolutionLabel": { "type": "string" },
+        "downloadsCount": { "type": "integer" },
+        "visibility": { "type": "string", "enum": ["PUBLIC"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "title", "category", "vipOnly", "drawableKey", "resolutionLabel",
+        "downloadsCount", "visibility", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile, subscription plan, credits, streaks, and preferences."
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/SavedWorkItem" },
+      "description": "User's My Work saved photos, videos, and wallpapers."
+    },
+    "/paymentRequests/{requestId}": {
+      "schema": { "$ref": "#/entities/PaymentRequest" },
+      "description": "EasyPaisa and JazzCash manual VIP payment requests awaiting admin review."
+    },
+    "/challengeSubmissions/{submissionId}": {
+      "schema": { "$ref": "#/entities/ChallengeSubmission" },
+      "description": "Daily Photo Challenge submissions and top showcase entries."
+    },
+    "/wallpapers/{wallpaperId}": {
+      "schema": { "$ref": "#/entities/WallpaperCatalogItem" },
+      "description": "Curated wallpaper catalog managed in the admin dashboard."
+    }
+  }
+}

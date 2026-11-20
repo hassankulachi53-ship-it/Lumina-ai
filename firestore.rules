@@ -1,0 +1,307 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Shared Security Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        ('email' in request.auth.token &&
+         request.auth.token.email == 'hassankulachi53@gmail.com' &&
+         'email_verified' in request.auth.token &&
+         request.auth.token.email_verified == true)
+      );
+    }
+
+    // --- Validation Helpers ---
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.email is string && data.email.size() <= 120 &&
+             (!('avatarTheme' in data) || (data.avatarTheme is string && data.avatarTheme.size() <= 40)) &&
+             data.planTier in ['FREE', 'VIP_TRIAL', 'VIP_WEEKLY', 'VIP_MONTHLY', 'VIP_YEARLY', 'VIP_CHALLENGE_PASS'] &&
+             data.vipExpiresAtMs is int && data.vipExpiresAtMs >= 0 &&
+             data.dailyCreditsRemaining is int && data.dailyCreditsRemaining >= 0 && data.dailyCreditsRemaining <= 999 &&
+             data.bonusCredits is int && data.bonusCredits >= 0 && data.bonusCredits <= 9999 &&
+             data.streakCount is int && data.streakCount >= 0 && data.streakCount <= 3650 &&
+             data.lastCheckInDate is string && data.lastCheckInDate.size() <= 16 &&
+             data.referralCode is string && data.referralCode.size() >= 4 && data.referralCode.size() <= 24 &&
+             (!('referredByCode' in data) || (data.referredByCode is string && data.referredByCode.size() <= 24)) &&
+             data.referralCount is int && data.referralCount >= 0 && data.referralCount <= 9999 &&
+             data.preferredCurrency in ['PKR', 'USD', 'GBP', 'AED'] &&
+             data.preferredLanguage in ['EN', 'UR', 'HI', 'AR', 'ES'] &&
+             data.darkThemeEnabled is bool &&
+             data.notificationsEnabled is bool;
+    }
+
+    function isValidSavedWork(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.mediaType in ['PHOTO', 'VIDEO', 'WALLPAPER'] &&
+             data.folderName is string && data.folderName.size() >= 1 && data.folderName.size() <= 40 &&
+             data.favorite is bool &&
+             data.toolUsed is string && data.toolUsed.size() >= 1 && data.toolUsed.size() <= 60 &&
+             data.filterName is string && data.filterName.size() <= 40 &&
+             data.qualityLabel in ['HD', '4K', '8K', 'ORIGINAL'] &&
+             data.enhancementSummary is string && data.enhancementSummary.size() <= 300 &&
+             (!('localUri' in data) || (data.localUri is string && data.localUri.size() <= 500)) &&
+             (!('thumbnailBase64' in data) || (data.thumbnailBase64 is string && data.thumbnailBase64.size() <= 120000));
+    }
+
+    function isValidPaymentRequest(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.userEmail is string && data.userEmail.size() <= 120 &&
+             data.userName is string && data.userName.size() >= 1 && data.userName.size() <= 80 &&
+             data.paymentMethod in ['EASYPAISA', 'JAZZCASH'] &&
+             data.planId in ['VIP_WEEKLY', 'VIP_MONTHLY', 'VIP_YEARLY'] &&
+             data.amountDisplay is string && data.amountDisplay.size() >= 1 && data.amountDisplay.size() <= 30 &&
+             data.transactionRef is string && data.transactionRef.size() >= 3 && data.transactionRef.size() <= 64 &&
+             data.senderPhone is string && data.senderPhone.size() >= 6 && data.senderPhone.size() <= 24 &&
+             data.proofSummary is string && data.proofSummary.size() >= 1 && data.proofSummary.size() <= 200 &&
+             data.status in ['PENDING', 'APPROVED', 'REJECTED'] &&
+             data.adminNote is string && data.adminNote.size() <= 200;
+    }
+
+    function isValidChallengeSubmission(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 60 &&
+             data.dateKey is string && data.dateKey.size() >= 8 && data.dateKey.size() <= 16 &&
+             data.themeTitle is string && data.themeTitle.size() >= 1 && data.themeTitle.size() <= 60 &&
+             data.caption is string && data.caption.size() >= 1 && data.caption.size() <= 140 &&
+             data.toolUsed is string && data.toolUsed.size() >= 1 && data.toolUsed.size() <= 60 &&
+             data.creativityScore is int && data.creativityScore >= 0 && data.creativityScore <= 100 &&
+             data.qualityScore is int && data.qualityScore >= 0 && data.qualityScore <= 100 &&
+             data.judgeFeedback is string && data.judgeFeedback.size() <= 300 &&
+             data.prizeAwarded in ['NONE', 'EXTRA_CREDITS', 'VIP_DAY_PASS'] &&
+             data.votesCount is int && data.votesCount >= 0 && data.votesCount <= 1000000 &&
+             data.featured is bool &&
+             data.visibility == 'PUBLIC' &&
+             (!('previewBase64' in data) || (data.previewBase64 is string && data.previewBase64.size() <= 120000));
+    }
+
+    function isValidWallpaper(data) {
+      return data.title is string && data.title.size() >= 1 && data.title.size() <= 80 &&
+             data.category is string && data.category.size() >= 1 && data.category.size() <= 40 &&
+             data.vipOnly is bool &&
+             data.drawableKey is string && data.drawableKey.size() >= 1 && data.drawableKey.size() <= 80 &&
+             data.resolutionLabel is string && data.resolutionLabel.size() >= 1 && data.resolutionLabel.size() <= 20 &&
+             data.downloadsCount is int && data.downloadsCount >= 0 &&
+             data.visibility == 'PUBLIC';
+    }
+
+    // --- Collection Rules ---
+
+    match /admins/{adminUid} {
+      allow get: if isSignedIn() && (request.auth.uid == adminUid || isAdmin());
+      allow list, create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == userId &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'email', 'planTier', 'vipExpiresAtMs',
+                         'dailyCreditsRemaining', 'bonusCredits', 'streakCount', 'lastCheckInDate',
+                         'referralCode', 'referralCount', 'preferredCurrency', 'preferredLanguage',
+                         'darkThemeEnabled', 'notificationsEnabled', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'email', 'avatarTheme', 'planTier', 'vipExpiresAtMs',
+                         'dailyCreditsRemaining', 'bonusCredits', 'streakCount', 'lastCheckInDate',
+                         'referralCode', 'referredByCode', 'referralCount', 'preferredCurrency',
+                         'preferredLanguage', 'darkThemeEnabled', 'notificationsEnabled',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().planTier in ['FREE', 'VIP_TRIAL'] &&
+                       incoming().referralCount == 0 &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (
+                         isAdmin() ||
+                         (
+                           isOwner(userId) &&
+                           incoming().referralCode == existing().referralCode &&
+                           incoming().referralCount == existing().referralCount &&
+                           incoming().planTier in ['FREE', 'VIP_TRIAL', 'VIP_CHALLENGE_PASS'] &&
+                           incoming().diff(existing()).affectedKeys().hasOnly([
+                             'displayName', 'avatarTheme', 'dailyCreditsRemaining', 'bonusCredits',
+                             'streakCount', 'lastCheckInDate', 'referredByCode', 'preferredCurrency',
+                             'preferredLanguage', 'darkThemeEnabled', 'notificationsEnabled',
+                             'planTier', 'vipExpiresAtMs', 'updatedAt'
+                           ])
+                         )
+                       );
+
+      allow delete: if isValidId(userId) && (isOwner(userId) || isAdmin());
+
+      match /projects/{projectId} {
+        allow get: if isValidId(projectId) && isOwner(userId);
+        allow list: if isOwner(userId);
+
+        allow create: if isSignedIn() &&
+                         isOwner(userId) &&
+                         isValidId(projectId) &&
+                         incoming().userId == userId &&
+                         incoming().keys().hasAll([
+                           'userId', 'title', 'mediaType', 'folderName', 'favorite',
+                           'toolUsed', 'filterName', 'qualityLabel', 'enhancementSummary',
+                           'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'title', 'mediaType', 'folderName', 'favorite',
+                           'toolUsed', 'filterName', 'qualityLabel', 'enhancementSummary',
+                           'localUri', 'thumbnailBase64', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         isValidSavedWork(incoming());
+
+        allow update: if isSignedIn() &&
+                         isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidSavedWork(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'title', 'folderName', 'favorite', 'filterName',
+                           'qualityLabel', 'enhancementSummary', 'localUri',
+                           'thumbnailBase64', 'updatedAt'
+                         ]);
+
+        allow delete: if isValidId(projectId) && isOwner(userId);
+      }
+    }
+
+    match /paymentRequests/{requestId} {
+      allow get: if isSignedIn() && isValidId(requestId) && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
+
+      allow create: if isSignedIn() &&
+                       isValidId(requestId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().status == 'PENDING' &&
+                       incoming().adminNote == '' &&
+                       incoming().keys().hasAll([
+                         'userId', 'userEmail', 'userName', 'paymentMethod', 'planId',
+                         'amountDisplay', 'transactionRef', 'senderPhone', 'proofSummary',
+                         'status', 'adminNote', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'userEmail', 'userName', 'paymentMethod', 'planId',
+                         'amountDisplay', 'transactionRef', 'senderPhone', 'proofSummary',
+                         'status', 'adminNote', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidPaymentRequest(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(requestId) &&
+                       isValidPaymentRequest(incoming()) &&
+                       isAdmin() &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNote', 'updatedAt']);
+
+      allow delete: if isValidId(requestId) && isAdmin();
+    }
+
+    match /challengeSubmissions/{submissionId} {
+      allow get: if isSignedIn() && isValidId(submissionId) && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || existing().userId == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn() &&
+                       isValidId(submissionId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().votesCount == 0 &&
+                       incoming().featured == false &&
+                       incoming().visibility == 'PUBLIC' &&
+                       incoming().keys().hasAll([
+                         'userId', 'authorName', 'dateKey', 'themeTitle', 'caption',
+                         'toolUsed', 'creativityScore', 'qualityScore', 'judgeFeedback',
+                         'prizeAwarded', 'votesCount', 'featured', 'visibility',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'authorName', 'dateKey', 'themeTitle', 'caption',
+                         'toolUsed', 'creativityScore', 'qualityScore', 'judgeFeedback',
+                         'prizeAwarded', 'votesCount', 'featured', 'visibility',
+                         'previewBase64', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       isValidChallengeSubmission(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(submissionId) &&
+                       isValidChallengeSubmission(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time &&
+                       (
+                         isAdmin() ||
+                         (
+                           incoming().userId == request.auth.uid &&
+                           incoming().diff(existing()).affectedKeys().hasOnly(['caption', 'updatedAt'])
+                         ) ||
+                         (
+                           incoming().diff(existing()).affectedKeys().hasOnly(['votesCount', 'updatedAt']) &&
+                           incoming().votesCount == existing().votesCount + 1
+                         )
+                       );
+
+      allow delete: if isSignedIn() && isValidId(submissionId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /wallpapers/{wallpaperId} {
+      allow get: if isSignedIn() && isValidId(wallpaperId);
+      allow list: if isSignedIn() && (existing().visibility == 'PUBLIC' || isAdmin());
+      allow create: if isAdmin() && isValidId(wallpaperId) && isValidWallpaper(incoming()) &&
+                       incoming().createdAt is timestamp && incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow update: if isAdmin() && isValidId(wallpaperId) && isValidWallpaper(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp && incoming().updatedAt <= request.time;
+      allow delete: if isAdmin() && isValidId(wallpaperId);
+    }
+  }
+}
